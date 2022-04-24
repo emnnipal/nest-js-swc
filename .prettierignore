@@ -14,5 +14,5 @@ logs/
 
 # misc
 .eslintcache
-*.lock.yaml
+*-lock.yaml
 

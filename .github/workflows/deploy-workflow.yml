@@ -1,0 +1,97 @@
+name: 'Deploy'
+on:
+  push:
+    branches: [main, develop]
+
+jobs:
+  lint-and-test:
+    name: Lint and unit test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout ${{ github.ref }} branch
+        uses: actions/checkout@v1
+        with:
+          ref: ${{ github.ref }}
+
+      - uses: pnpm/action-setup@v2.0.1
+        with:
+          version: 7.0.0-rc.3
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 16.13.0
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Check Types
+        run: pnpm check:types
+
+      - name: Run ESLint
+        run: pnpm lint
+
+      - name: Run tests
+        run: pnpm test -- --maxWorkers=4 --no-color --coverage=false --changedSince=origin/main
+
+  deploy-to-dev:
+    name: Deploy to Dev
+    if: github.event.ref == 'refs/heads/develop'
+    needs: lint-and-test
+    uses: ./.github/workflows/deploy-app-workflow.yml
+    with:
+      environment: DEV
+      branch: develop
+    secrets:
+      ssh_host: ${{ secrets.HOST }}
+      ssh_user: ${{ secrets.USERNAME }}
+      ssh_key_ed25519: ${{ secrets.KEY_ED25519 }}
+      ssh_port: ${{ secrets.PORT }}
+
+  release:
+    name: Release
+    if: github.event.ref == 'refs/heads/main'
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    outputs:
+      skipped: ${{ steps.changelog.outputs.skipped }}
+      tag: ${{ steps.changelog.outputs.tag }}
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v1
+        with:
+          ref: main
+
+      - id: changelog
+        name: Conventional Changelog
+        uses: TriPSs/conventional-changelog-action@v3
+        with:
+          git-message: 'chore(release): {version} [no ci]'
+          git-user-email: emnnipal@gmail.com
+          git-user-name: Emmanuel Nipal
+          github-token: ${{ secrets.PAT }}
+          output-file: 'false'
+
+      - name: Create Github Release
+        uses: actions/create-release@v1
+        if: ${{ steps.changelog.outputs.skipped == 'false' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+        with:
+          tag_name: ${{ steps.changelog.outputs.tag }}
+          release_name: ${{ steps.changelog.outputs.tag }}
+          body: ${{ steps.changelog.outputs.clean_changelog }}
+
+  deploy-to-staging:
+    name: Deploy to Staging
+    if: needs.release.outputs.skipped == 'false'
+    needs: release
+    uses: ./.github/workflows/deploy-app-workflow.yml
+    with:
+      environment: STAGING
+      branch: 'refs/tags/${{needs.release.outputs.tag}}'
+    secrets:
+      ssh_host: ${{ secrets.STAGING_HOST }}
+      ssh_user: ${{ secrets.USERNAME }}
+      ssh_key_ed25519: ${{ secrets.STAGING_KEY_ED25519 }}
+      ssh_port: ${{ secrets.PORT }}
