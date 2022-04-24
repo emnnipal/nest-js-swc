@@ -1,0 +1,18 @@
+# directories
+node_modules/
+dist/
+build/
+coverage/
+logs/
+
+# secrets
+.env
+
+# logs
+*-error.log
+*-debug.log
+
+# misc
+.eslintcache
+*.lock.yaml
+
