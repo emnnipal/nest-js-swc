@@ -26,6 +26,11 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+### Prerequisites
+
+1. Install node js `>= 16.13.0`
+2. Install `pnpm`, see https://pnpm.io/installation for installation instructions.
+
 ## Installation
 
 ```bash
