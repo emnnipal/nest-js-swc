@@ -12,12 +12,9 @@
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "noImplicitThis": true,
+    "strict": true,
+    // "strictPropertyInitialization": false, // uncomment for typeorm
     "noImplicitReturns": true,
-    "noImplicitAny": true,
-    "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false
   }
